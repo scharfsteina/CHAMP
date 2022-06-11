@@ -3,8 +3,7 @@
 # - weighted: defaulted at false, performs network analysis on the unweighted network
 # - min: defaulted at 0, minimum number of gamma values for which a partition is created
 # - name: name of network (eg. "Karate")
-# - path: path to save figures (eg. "./folder_name)
-run_champ <- function(network, weighted = F, min = 0, name, path) {
+run_champ <- function(network, weighted = F, min = 0, name) {
   
   # Import relevant functions
   source("scripts/iterate_gamma.R")
@@ -128,7 +127,7 @@ run_champ <- function(network, weighted = F, min = 0, name, path) {
     theme_few() +
     theme(axis.text = element_text(size = 8))
   
-  ggsave("figures/figure1.png",path = path)
+  ggsave("figures/figure1.png")
   
   ggplot(segments) + 
     geom_segment(aes(x=x1, 
@@ -157,7 +156,7 @@ run_champ <- function(network, weighted = F, min = 0, name, path) {
     theme_few() +
     theme(axis.text = element_text(size = 8))
   
-  ggsave("figures/figure2.png",path = path)
+  ggsave("figures/figure2.png")
   
   ggplot() +
     geom_line(data = all,
@@ -203,7 +202,7 @@ run_champ <- function(network, weighted = F, min = 0, name, path) {
     theme_few() +
     theme(axis.text = element_text(size = 8))
   
-  ggsave("figures/figure3.png",path = path)
+  ggsave("figures/figure3.png")
   
   # Ordering line segments by length
   partition_summary <- data.frame(matrix(ncol = 5, nrow = length(segments[,1])-1))
@@ -221,7 +220,3 @@ run_champ <- function(network, weighted = F, min = 0, name, path) {
   partition_summary[order(-partition_summary$gamma_range),]
 }
 
-
-
-# all optimal partitions,  pruning idea (paper in slack)
-# football data
