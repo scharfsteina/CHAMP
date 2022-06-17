@@ -14,10 +14,12 @@ Calling ```champ = run_champ(karate, weighted = TRUE, name = "Karate Club")```, 
 This highlights the performance of distinct partitions, where performance is measured by stability to variations in the values of gamma (```gamma_range```). Based on this metric, we find that in the Weighted Karate Club Network, the 2 and 4 cluster solutions perform the best.
 
 The partition of the 2 cluster solution can be represented by the following two figures (```communities(champ$partitions[[1]])``` and ```figures\partition1```)
+
 <img width="763" alt="Screen Shot 2022-06-17 at 1 52 00 PM" src="https://user-images.githubusercontent.com/54069119/174392590-ddcfbe77-d52d-449f-bfa6-d77ffe9d721e.png">
 <img src="figures/partition1.png"/>
 
 The partition of the 4 cluster solution can be represented by the following two figures (```communities(champ$partitions[[4]])``` and ```figures\partition1```)
+
 <img width="754" alt="Screen Shot 2022-06-17 at 1 52 46 PM" src="https://user-images.githubusercontent.com/54069119/174392655-1751a5db-cc04-4a95-9ebb-8fb8b42b0b87.png">
 <img src="figures/partition4.png"/>
 
