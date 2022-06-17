@@ -2,7 +2,9 @@
 Working with Dartmouth Applied Mathematics Professor Peter Mucha as a URAD Scholar, 
 I implemented the CHAMP algorithm that was outlined in his paper 
 [*Post-Processing Partitions to Identify Domains of Modularity Optimization*](https://www.mdpi.com/1999-4893/10/3/93).
-The goal of the CHAMP Algorithm is to make community detection analysis for networks more straightforward.
+
+For those unfamiliar with the paper and the evolution of community detection in R: Community detection is the process of grouping a network into communities often on the basis of similarity or connectivity. The ongoing and most common practice for community detection analysis in R is centered around calling ```cluster_leiden``` on a network. Often, the function is called using the default value for the ```resolution_parameter``` ($\gamma = 1$). This default value, most of the time, is incorrect. At the simplest level, the goal of the CHAMP algorithm is to vary the ```resolution_parameter``` in order to find its optimal value(s).
+
 
 ### Example 1: Weighted Karate Club Network
 Calling ```champ = run_champ(karate, weighted = TRUE, name = "Karate Club")```, you get the following summary
