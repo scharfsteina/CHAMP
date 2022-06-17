@@ -1,5 +1,4 @@
 # An Implementation of the CHAMP Algorithm
-(in progress)
 Working with Dartmouth Applied Mathematics Professor Peter Mucha as a URAD Scholar, 
 I implemented the CHAMP algorithm that was outlined in his paper 
 [*Post-Processing Partitions to Identify Domains of Modularity Optimization*](https://www.mdpi.com/1999-4893/10/3/93).
