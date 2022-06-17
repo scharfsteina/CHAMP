@@ -3,7 +3,9 @@
 # - weighted: defaulted at false, performs network analysis on the unweighted network
 # - min: defaulted at 0, minimum number of gamma values for which a partition is created
 # - name: name of network (eg. "Karate")
-run_champ <- function(network, weighted = F, min = 0, name) {
+# - plot: if you want to plot the partitions
+# - n_plots: top # of partitions you want to plot 
+run_champ <- function(network, weighted = F, min = 0, name, plot = T, n_plots = 2) {
   
   # Import relevant functions
   source("scripts/iterate_gamma.R")
@@ -29,7 +31,8 @@ run_champ <- function(network, weighted = F, min = 0, name) {
   partitions <- unique_partitions(iterate_gamma(network))
   
   # Extract the unique partitions that were created from a minimum number of gamma values
-  best_partitions <- best_partitions(c = partitions$count, p = partitions$partitions,min) 
+  # Equivalent to partitions if min is set to 0
+  best_partitions <- best_partitions(partitions$count, partitions$partitions, min) 
   
   # CHAMP method:
   # Get A-hat and P-hat for each partition, gives you a intercept and slope. 
@@ -45,20 +48,32 @@ run_champ <- function(network, weighted = F, min = 0, name) {
   }
   
   # Put a and p in descending order to construct a matrix of gamma values
-  ordered_a <- order(unlist(a), decreasing = TRUE)
+  ordered_a <- order(unlist(a), unlist(p), decreasing = TRUE)
   a_descending <- rep(NA,length(ordered_a)); p_descending <- rep(NA,length(ordered_a))
   partitions_descending <- rep(NA,length(ordered_a))
+  # Sort by a and then p (be careful if there are ties)
   for (i in ordered_a) {
     p_descending[i] <- p[ordered_a[i]]
-    a_descending[i] <- a[ordered_a[i]]
+    a_descending[i] <- a[ordered_a[i]] 
     partitions_descending[i] <- best_partitions$partitions[ordered_a[i]]
   }
-  
+  report <- ""
   gamma_matrix <- matrix(data = NA, nrow = length(ordered_a), ncol = length(ordered_a))
+  prev <- NULL
   for (i in 1:length(a_descending)) {
     for (j in 1:length(a_descending)) {
       gamma_matrix[i,j] <- (a_descending[[i]]-a_descending[[j]])/(p_descending[[i]]-p_descending[[j]])
     }
+    if (!is.null(prev)) {
+      if (all(mapply(identical, gamma_matrix[i,], prev))) {
+        report <- str_c(report,"Partition ", 
+                        ordered_a[i-1], 
+                        " and Partition ", 
+                        ordered_a[i],
+                        " have the same modularity line. ")
+      }
+    }
+    prev <- gamma_matrix[i,]
   }
   
   # Find the upper envelope of gamma values
@@ -85,16 +100,21 @@ run_champ <- function(network, weighted = F, min = 0, name) {
   colnames(all) <- c('x',paste("", 1:dim(modularity)[2], sep = ""))
   all <- melt(all, id = 'x')
   colnames(all)[2] <- "partition_num"
-  best <- data.frame(best_gammas, best_modularities, corresponding_partitions)
-  
-  segments <- data.frame(x1 = c(0,best_gammas), 
-                         y1 = c(modularity[1,1], best_modularities), 
-                         x2 = c(best_gammas,NA), 
-                         y2 = c(best_modularities,NA),
-                         partitions = c(corresponding_partitions,0))
+  last <- corresponding_partitions[length(corresponding_partitions)]
+  best_gammas <- c(0,best_gammas,2)
+  best_modularities <- c(modularity[1,1], best_modularities, a_descending[[last]]-(2*p_descending[[last]]))
+  last <- length(best_modularities)
+  best <- data.frame(best_gammas, best_modularities)
+  segments <- data.frame(x1 = best_gammas[1:last-1], 
+                         y1 = best_modularities[1:last-1], 
+                         x2 = best_gammas[2:last], 
+                         y2 = best_modularities[2:last],
+                         partitions = corresponding_partitions)
   
   w <- ifelse(weighted, "Weighted", "Unweighted")
   title <- str_c("Champ on", w, name, "Network", sep = " ")
+  
+  # Champ visualizations
   
   ggplot() +
     geom_line(data = all,
@@ -107,6 +127,12 @@ run_champ <- function(network, weighted = F, min = 0, name) {
     geom_point(data = best,
                mapping = aes(x = best_gammas, 
                              y = best_modularities)) +
+    geom_text(data = segments,
+              aes(x = (x1+x2)/2, 
+                  y = (y1+y2)/2, 
+                  label = partitions),
+              color = segments$partitions,
+              vjust = -.5) +
     geom_segment(data = best,
                  mapping = aes(x = best_gammas,
                                xend = best_gammas,
@@ -127,36 +153,7 @@ run_champ <- function(network, weighted = F, min = 0, name) {
     theme_few() +
     theme(axis.text = element_text(size = 8))
   
-  ggsave("figures/figure1.png")
-  
-  ggplot(segments) + 
-    geom_segment(aes(x=x1, 
-                     y=y1, 
-                     xend = x2, 
-                     yend = y2),
-                 color = segments$partitions,
-                 na.rm = T)+
-    geom_segment(aes(x=x1,
-                     y=y1,
-                     xend=x1,
-                     yend=-Inf), linetype = "dashed") +
-    guides(color = "none") +
-    labs(x = expression(paste("Resolution Parameter (", gamma,")")),
-         y = "Modularity",
-         title = title)+
-    scale_y_continuous(breaks = seq(0,max(segments$y1),length = 10), 
-                       labels = round(seq(0,max(segments$y1),length = 10)),
-                       expand = c(0,0),
-                       limits = c(0,max(segments$y1))) +
-    scale_x_continuous(breaks = c(segments$x1,2), 
-                       labels = c(round(segments$x1,2),2),
-                       limits = c(0,2),
-                       expand = c(0,0)) +
-    geom_point(aes(x = x1, y = y1)) +
-    theme_few() +
-    theme(axis.text = element_text(size = 8))
-  
-  ggsave("figures/figure2.png")
+  ggsave("figures/figure1.png", width = 12)
   
   ggplot() +
     geom_line(data = all,
@@ -175,6 +172,12 @@ run_champ <- function(network, weighted = F, min = 0, name) {
                  color = "#63666A",
                  size = 1.5,
                  na.rm = T) +
+    geom_text(data = segments,
+              aes(x = (x1+x2)/2, 
+                  y = (y1+y2)/2, 
+                  label = partitions),
+              color = segments$partitions,
+              vjust = -.5) +
     geom_segment(data = best,
                  mapping = aes(x = best_gammas,
                                xend = best_gammas,
@@ -202,8 +205,44 @@ run_champ <- function(network, weighted = F, min = 0, name) {
     theme_few() +
     theme(axis.text = element_text(size = 8))
   
-  ggsave("figures/figure3.png")
+  ggsave("figures/figure2.png", width = 12)
   
+  ggplot(segments) + 
+    geom_segment(aes(x=x1, 
+                     y=y1, 
+                     xend = x2, 
+                     yend = y2),
+                 color = segments$partitions,
+                 na.rm = T)+
+    geom_segment(aes(x=x1,
+                     y=y1,
+                     xend=x1,
+                     yend=-Inf), linetype = "dashed") +
+    geom_text(aes(x = (x1+x2)/2, 
+                  y = (y1+y2)/2, 
+                  label = partitions),
+              color = segments$partitions,
+              vjust = -.5) +
+    guides(color = "none") +
+    labs(x = expression(paste("Resolution Parameter (", gamma,")")),
+         y = "Modularity",
+         title = title)+
+    scale_y_continuous(breaks = seq(0,max(segments$y1),length = 10), 
+                       labels = round(seq(0,max(segments$y1),length = 10)),
+                       expand = c(0,0),
+                       limits = c(0,max(segments$y1))) +
+    scale_x_continuous(breaks = c(segments$x1,2), 
+                       labels = c(round(segments$x1,2),2),
+                       limits = c(0,2),
+                       expand = c(0,0)) +
+    geom_point(aes(x = x1, y = y1)) +
+    theme_few() +
+    theme(axis.text = element_text(size = 8))
+
+  
+  ggsave("figures/figure3.png", width = 12)
+  
+  # Partition summary
   # Ordering line segments by length
   partition_summary <- data.frame(matrix(ncol = 5, nrow = length(segments[,1])-1))
   colnames(partition_summary) <- c("segment_length", "starting_gamma", "ending_gamma", "gamma_range", "partition_num")
@@ -217,6 +256,36 @@ run_champ <- function(network, weighted = F, min = 0, name) {
     partition_summary[x,"num_clusters"] <- best_partitions$partitions[[x]]$nb_clusters
   }
   
-  partition_summary[order(-partition_summary$gamma_range),]
+  partition_summary <- partition_summary[order(-partition_summary$gamma_range),]
+  print(partition_summary)
+  if (report != "") {
+    print(report)
+  }
+  
+  # bump ideanet channel with github
+  
+  # Top n_plots partitions
+  top <- partition_summary[1:n_plots,]
+  top_partitions <- top[,"partition_num"]
+  top_clusters <- top[,"num_clusters"]
+  for (i in 1:n_plots) {
+    partitions <- best_partitions$partitions
+    p <- top_partitions[[i]]
+    png(str_c("figures/","partition",top_partitions[i],".png"),
+        width = 680, 
+        height = 680, 
+        units = "px",
+        res = 100)
+    plot(partitions[[p]], network, main = str_c(name,
+                                                "Partition",
+                                                top_partitions[i],
+                                                "with",
+                                                top_clusters[i],
+                                                "clusters",
+                                                sep = " "))
+    dev.off()
+  }
+  return(list("partitions" = best_partitions$partitions,
+              "summary" = partition_summary,
+              "warning" = report))
 }
-
