@@ -29,4 +29,4 @@ In the ```figures``` folder, we also find three other figures. They display thre
 <img src="figures/figure2.png"/>
 <img src="figures/figure3.png"/>
 
-These figures provide us with a visual of which partitions are on the upper envelope us as modularity varies. Those partitions that are on the upper envelope for the longest (partition 1 and 4) may be the most stable solutions.
+These figures provide us with a visual of which partitions are on the upper envelope as modularity varies. Those partitions that are on the upper envelope for the longest (partition 1 and 4) may be the most stable solutions.
